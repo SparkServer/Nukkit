@@ -10,15 +10,15 @@ import cn.nukkit.lang.TranslationContainer;
 import cn.nukkit.utils.TextFormat;
 
 /**
- * Created on 2015/11/12 by xtypr.
- * Package cn.nukkit.command.defaults in project Nukkit .
+ * @author xtypr
+ * @since 2015/11/12
  */
 public class DeopCommand extends VanillaCommand {
     public DeopCommand(String name) {
         super(name, "%nukkit.command.deop.description", "%commands.deop.description");
         this.setPermission("nukkit.command.op.take");
         this.commandParameters.put("default", new CommandParameter[]{
-                new CommandParameter("player", CommandParamType.TARGET, false)
+                CommandParameter.newType("player", CommandParamType.TARGET)
         });
     }
 

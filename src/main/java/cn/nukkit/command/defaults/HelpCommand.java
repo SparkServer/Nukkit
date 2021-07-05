@@ -12,8 +12,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * author: MagicDroidX
- * Nukkit Project
+ * @author MagicDroidX (Nukkit Project)
  */
 public class HelpCommand extends VanillaCommand {
 
@@ -22,7 +21,7 @@ public class HelpCommand extends VanillaCommand {
         this.setPermission("nukkit.command.help");
         this.commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[]{
-                new CommandParameter("page", CommandParamType.INT, true)
+                CommandParameter.newType("page", true, CommandParamType.INT)
         });
     }
 

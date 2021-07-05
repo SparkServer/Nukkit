@@ -1,14 +1,20 @@
 package cn.nukkit.block;
 
+import cn.nukkit.api.PowerNukkitOnly;
+import cn.nukkit.api.Since;
+import cn.nukkit.blockproperty.BlockProperties;
+import cn.nukkit.blockproperty.CommonBlockProperties;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemString;
 import cn.nukkit.item.ItemTool;
 import cn.nukkit.utils.BlockColor;
 
+import javax.annotation.Nonnull;
+
 /**
- * Created on 2015/12/2 by xtypr.
- * Package cn.nukkit.block in project Nukkit .
+ * @author xtypr
+ * @since 2015/12/2
  */
 public class BlockCobweb extends BlockFlowable {
     public BlockCobweb() {
@@ -29,6 +35,14 @@ public class BlockCobweb extends BlockFlowable {
         return COBWEB;
     }
 
+    @Since("1.4.0.0-PN")
+    @PowerNukkitOnly
+    @Nonnull
+    @Override
+    public BlockProperties getProperties() {
+        return CommonBlockProperties.EMPTY_PROPERTIES;
+    }
+
     @Override
     public double getHardness() {
         return 4;
@@ -44,6 +58,12 @@ public class BlockCobweb extends BlockFlowable {
         return ItemTool.TYPE_SWORD;
     }
 
+    @PowerNukkitOnly
+    @Override
+    public int getWaterloggingLevel() {
+        return 1;
+    }
+
     @Override
     public void onEntityCollide(Entity entity) {
         entity.resetFallDistance();
@@ -51,12 +71,16 @@ public class BlockCobweb extends BlockFlowable {
 
     @Override
     public Item[] getDrops(Item item) {
-        if (item.isShears() || item.isSword()) {
+        if (item.isShears()) {
+            return new Item[]{
+                    this.toItem()
+            };
+        } else if (item.isSword()) {
             return new Item[]{
                     new ItemString()
             };
         } else {
-            return new Item[0];
+            return Item.EMPTY_ARRAY;
         }
     }
 
@@ -69,4 +93,10 @@ public class BlockCobweb extends BlockFlowable {
     public boolean canHarvestWithHand() {
         return false;
     }
+
+    @Override
+    public boolean diffusesSkyLight() {
+        return true;
+    }
+
 }

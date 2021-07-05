@@ -8,7 +8,8 @@ import cn.nukkit.math.NukkitRandom;
 import cn.nukkit.math.Vector3;
 
 /**
- * Created by CreeperFace on 26. 10. 2016.
+ * @author CreeperFace
+ * @since 26. 10. 2016
  */
 public class NewJungleTree extends TreeGenerator {
 
@@ -210,9 +211,7 @@ public class NewJungleTree extends TreeGenerator {
     }
 
     private int getCocoaMeta(int age, int side) {
-        int meta = 0;
-
-        meta *= age;
+        int meta = age * 4;
 
         //3 4 2 5
         switch (side) {

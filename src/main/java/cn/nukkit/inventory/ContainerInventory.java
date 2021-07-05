@@ -11,8 +11,7 @@ import cn.nukkit.network.protocol.ContainerOpenPacket;
 import java.util.Map;
 
 /**
- * author: MagicDroidX
- * Nukkit Project
+ * @author MagicDroidX (Nukkit Project)
  */
 public abstract class ContainerInventory extends BaseInventory {
     public ContainerInventory(InventoryHolder holder, InventoryType type) {
@@ -58,6 +57,7 @@ public abstract class ContainerInventory extends BaseInventory {
     public void onClose(Player who) {
         ContainerClosePacket pk = new ContainerClosePacket();
         pk.windowId = who.getWindowId(this);
+        pk.wasServerInitiated = who.getClosingWindowId() != pk.windowId;
         who.dataPacket(pk);
         super.onClose(who);
     }

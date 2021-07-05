@@ -1,26 +1,28 @@
 package cn.nukkit.network;
 
-import cn.nukkit.Nukkit;
 import cn.nukkit.Player;
 import cn.nukkit.Server;
+import cn.nukkit.api.DeprecationDetails;
+import cn.nukkit.api.PowerNukkitDifference;
+import cn.nukkit.api.Since;
 import cn.nukkit.nbt.stream.FastByteArrayOutputStream;
 import cn.nukkit.network.protocol.*;
-import cn.nukkit.utils.Binary;
 import cn.nukkit.utils.BinaryStream;
 import cn.nukkit.utils.ThreadCache;
 import cn.nukkit.utils.Utils;
 import cn.nukkit.utils.VarInt;
-import cn.nukkit.utils.Zlib;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.extern.log4j.Log4j2;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.ProtocolException;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -29,8 +31,7 @@ import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 /**
- * author: MagicDroidX
- * Nukkit Project
+ * @author MagicDroidX (Nukkit Project)
  */
 @Log4j2
 public class Network {
@@ -69,64 +70,75 @@ public class Network {
         this.server = server;
     }
 
+    @Since("1.3.0.0-PN")
     public static byte[] inflateRaw(byte[] data) throws IOException, DataFormatException {
         Inflater inflater = INFLATER_RAW.get();
-        inflater.reset();
-        inflater.setInput(data);
-        inflater.finished();
+        try {
+            inflater.setInput(data);
+            inflater.finished();
 
-        FastByteArrayOutputStream bos = ThreadCache.fbaos.get();
-        bos.reset();
-        byte[] buf = BUFFER.get();
-        while (!inflater.finished()) {
-            int i = inflater.inflate(buf);
-            if (i == 0) {
-                throw new IOException("Could not decompress the data. Needs input: "+inflater.needsInput()+", Needs Dictionary: "+inflater.needsDictionary());
+            FastByteArrayOutputStream bos = ThreadCache.fbaos.get();
+            bos.reset();
+            byte[] buf = BUFFER.get();
+            while (!inflater.finished()) {
+                int i = inflater.inflate(buf);
+                if (i == 0) {
+                    throw new IOException("Could not decompress the data. Needs input: " + inflater.needsInput() + ", Needs Dictionary: " + inflater.needsDictionary());
+                }
+                bos.write(buf, 0, i);
             }
-            bos.write(buf, 0, i);
+            return bos.toByteArray();
+        } finally {
+            inflater.reset();
         }
-        return bos.toByteArray();
     }
 
+    @Since("1.3.0.0-PN")
     public static byte[] deflateRaw(byte[] data, int level) throws IOException {
         Deflater deflater = DEFLATER_RAW.get();
-        deflater.reset();
-        deflater.setLevel(level);
-        deflater.setInput(data);
-        deflater.finish();
-        FastByteArrayOutputStream bos = ThreadCache.fbaos.get();
-        bos.reset();
-        byte[] buffer = BUFFER.get();
-        while (!deflater.finished()) {
-            int i = deflater.deflate(buffer);
-            bos.write(buffer, 0, i);
-        }
-
-        return bos.toByteArray();
-    }
-
-    public static byte[] deflateRaw(byte[][] datas, int level) throws IOException {
-        Deflater deflater = DEFLATER_RAW.get();
-        deflater.reset();
-        deflater.setLevel(level);
-        FastByteArrayOutputStream bos = ThreadCache.fbaos.get();
-        bos.reset();
-        byte[] buffer = BUFFER.get();
-
-        for (byte[] data : datas) {
+        try {
+            deflater.setLevel(level);
             deflater.setInput(data);
-            while (!deflater.needsInput()) {
+            deflater.finish();
+            FastByteArrayOutputStream bos = ThreadCache.fbaos.get();
+            bos.reset();
+            byte[] buffer = BUFFER.get();
+            while (!deflater.finished()) {
                 int i = deflater.deflate(buffer);
                 bos.write(buffer, 0, i);
             }
+
+            return bos.toByteArray();
+        } finally {
+            deflater.reset();
         }
-        deflater.finish();
-        while (!deflater.finished()) {
-            int i = deflater.deflate(buffer);
-            bos.write(buffer, 0, i);
+    }
+
+    @Since("1.3.0.0-PN")
+    public static byte[] deflateRaw(byte[][] datas, int level) throws IOException {
+        Deflater deflater = DEFLATER_RAW.get();
+        try {
+            deflater.setLevel(level);
+            FastByteArrayOutputStream bos = ThreadCache.fbaos.get();
+            bos.reset();
+            byte[] buffer = BUFFER.get();
+
+            for (byte[] data : datas) {
+                deflater.setInput(data);
+                while (!deflater.needsInput()) {
+                    int i = deflater.deflate(buffer);
+                    bos.write(buffer, 0, i);
+                }
+            }
+            deflater.finish();
+            while (!deflater.finished()) {
+                int i = deflater.deflate(buffer);
+                bos.write(buffer, 0, i);
+            }
+            return bos.toByteArray();
+        } finally {
+            deflater.reset();
         }
-        //Deflater::end is called the time when the process exits.
-        return bos.toByteArray();
     }
 
     public void addStatistics(double upload, double download) {
@@ -156,13 +168,9 @@ public class Network {
             try {
                 interfaz.process();
             } catch (Exception e) {
-                if (Nukkit.DEBUG > 1) {
-                    this.server.getLogger().logException(e);
-                }
-
+                log.fatal(this.server.getLanguage().translateString("nukkit.server.networkError", interfaz.getClass().getName(), Utils.getExceptionMessage(e)), e);
                 interfaz.emergencyShutdown();
                 this.unregisterInterface(interfaz);
-                log.fatal(this.server.getLanguage().translateString("nukkit.server.networkError", new String[]{interfaz.getClass().getName(), Utils.getExceptionMessage(e)}));
             }
         }
     }
@@ -215,52 +223,63 @@ public class Network {
     }
 
     public void processBatch(BatchPacket packet, Player player) {
+        List<DataPacket> packets = new ObjectArrayList<>();
+        try {
+            processBatch(packet.payload, packets);
+        } catch (ProtocolException e) {
+            player.close("", e.getMessage());
+            log.error("Unable to process player packets ", e);
+        }
+    }
+
+    @Since("1.4.0.0-PN")
+    public void processBatch(byte[] payload, Collection<DataPacket> packets) throws ProtocolException {
         byte[] data;
         try {
-            data = Network.inflateRaw(packet.payload);
-            //data = Zlib.inflate(packet.payload, 2 * 1024 * 1024); // Max 2MB
+            data = Network.inflateRaw(payload);
         } catch (Exception e) {
             log.debug("Exception while inflating batch packet", e);
             return;
         }
 
-        int len = data.length;
         BinaryStream stream = new BinaryStream(data);
         try {
-            List<DataPacket> packets = new ArrayList<>();
             int count = 0;
-            while (stream.offset < len) {
+            while (!stream.feof()) {
                 count++;
                 if (count >= 1000) {
-                    player.close("", "Illegal Batch Packet");
-                    return;
+                    throw new ProtocolException("Illegal batch with " + count + " packets");
                 }
                 byte[] buf = stream.getByteArray();
 
-                DataPacket pk = this.getPacketFromBuffer(buf);
+                ByteArrayInputStream bais = new ByteArrayInputStream(buf);
+                int header = (int) VarInt.readUnsignedVarInt(bais);
+
+                // | Client ID | Sender ID | Packet ID |
+                // |   2 bits  |   2 bits  |  10 bits  |
+                int packetId = header & 0x3ff;
+
+                DataPacket pk = this.getPacket(packetId);
 
                 if (pk != null) {
+                    pk.setBuffer(buf, buf.length - bais.available());
                     try {
                         pk.decode();
                     } catch (Exception e) {
-                        log.warn("Unable to decode {} from {}", pk.getClass().getSimpleName(), player.getName());
-                        log.throwing(e);
                         if (log.isTraceEnabled()) {
-                            log.trace("Dumping Packet\n{}", ByteBufUtil.prettyHexDump(Unpooled.wrappedBuffer(packet.payload)));
+                            log.trace("Dumping Packet\n{}", ByteBufUtil.prettyHexDump(Unpooled.wrappedBuffer(buf)));
                         }
-                        throw e;
+                        log.error("Unable to decode packet", e);
+                        throw new IllegalStateException("Unable to decode " + pk.getClass().getSimpleName());
                     }
 
                     packets.add(pk);
+                } else {
+                    log.debug("Received unknown packet with ID: {}", Integer.toHexString(packetId));
                 }
             }
-
-            processPackets(player, packets);
-
         } catch (Exception e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Error whilst decoding batch packet", e);
-            }
+            log.debug("Error whilst processing {} batched packets", packets.size());
         }
     }
 
@@ -270,27 +289,40 @@ public class Network {
      *
      * @param packets
      */
+    @PowerNukkitDifference(info = "Handles exception if on of the packets in the list fails")
     public void processPackets(Player player, List<DataPacket> packets) {
         if (packets.isEmpty()) return;
-        packets.forEach(player::handleDataPacket);
+        packets.forEach(p-> {
+            try {
+                player.handleDataPacket(p);
+            } catch (Exception e) {
+                if (log.isWarnEnabled()) {
+                    log.warn("Error whilst processing the packet {}:{} for {} (full data: {})",
+                            p.pid(), p.getClass().getSimpleName(),
+                            player.getName(), p.toString(),
+                            e
+                    );
+                }
+            }
+        });
     }
 
-    private DataPacket getPacketFromBuffer(byte[] buffer) throws IOException {
-        ByteArrayInputStream stream = new ByteArrayInputStream(buffer);
-        DataPacket pk = this.getPacket((byte) VarInt.readUnsignedVarInt(stream));
-        if (pk != null) {
-            pk.setBuffer(buffer, buffer.length - stream.available());
-        }
-        return pk;
-    }
-
+    @Deprecated
+    @DeprecationDetails(since = "1.4.0.0-PN", by = "Cloudburst Nukkit", 
+            reason = "Changed the id to int without backward compatibility", 
+            replaceWith = "getPacket(int id)")
     public DataPacket getPacket(byte id) {
-        Class<? extends DataPacket> clazz = this.packetPool[id & 0xff];
+        return getPacket((int) id);
+    }
+    
+    @Since("1.4.0.0-PN")
+    public DataPacket getPacket(int id) {
+        Class<? extends DataPacket> clazz = this.packetPool[id];
         if (clazz != null) {
             try {
                 return clazz.newInstance();
             } catch (Exception e) {
-                Server.getInstance().getLogger().logException(e);
+                log.error("Error while creating a class for the packet id {}", id, e);
             }
         }
         return null;
@@ -329,6 +361,7 @@ public class Network {
         this.registerPacket(ProtocolInfo.ADD_PLAYER_PACKET, AddPlayerPacket.class);
         this.registerPacket(ProtocolInfo.ADVENTURE_SETTINGS_PACKET, AdventureSettingsPacket.class);
         this.registerPacket(ProtocolInfo.ANIMATE_PACKET, AnimatePacket.class);
+        this.registerPacket(ProtocolInfo.ANVIL_DAMAGE_PACKET, AnvilDamagePacket.class);
         this.registerPacket(ProtocolInfo.AVAILABLE_COMMANDS_PACKET, AvailableCommandsPacket.class);
         this.registerPacket(ProtocolInfo.BATCH_PACKET, BatchPacket.class);
         this.registerPacket(ProtocolInfo.BLOCK_ENTITY_DATA_PACKET, BlockEntityDataPacket.class);
@@ -426,9 +459,18 @@ public class Network {
         this.registerPacket(ProtocolInfo.CREATIVE_CONTENT_PACKET, CreativeContentPacket.class);
         this.registerPacket(ProtocolInfo.DEBUG_INFO_PACKET, DebugInfoPacket.class);
         this.registerPacket(ProtocolInfo.EMOTE_LIST_PACKET, EmoteListPacket.class);
+        this.registerPacket(ProtocolInfo.ITEM_STACK_REQUEST_PACKET, ItemStackRequestPacket.class);
+        this.registerPacket(ProtocolInfo.ITEM_STACK_RESPONSE_PACKET, ItemStackResponsePacket.class);
         this.registerPacket(ProtocolInfo.PACKET_VIOLATION_WARNING_PACKET, PacketViolationWarningPacket.class);
         this.registerPacket(ProtocolInfo.PLAYER_ARMOR_DAMAGE_PACKET, PlayerArmorDamagePacket.class);
         this.registerPacket(ProtocolInfo.PLAYER_ENCHANT_OPTIONS_PACKET, PlayerEnchantOptionsPacket.class);
+        this.registerPacket(ProtocolInfo.POS_TRACKING_CLIENT_REQUEST_PACKET, PositionTrackingDBClientRequestPacket.class);
+        this.registerPacket(ProtocolInfo.POS_TRACKING_SERVER_BROADCAST_PACKET, PositionTrackingDBServerBroadcastPacket.class);
         this.registerPacket(ProtocolInfo.UPDATE_PLAYER_GAME_TYPE_PACKET, UpdatePlayerGameTypePacket.class);
+        this.registerPacket(ProtocolInfo.FILTER_TEXT_PACKET, FilterTextPacket.class);
+        this.registerPacket(ProtocolInfo.ITEM_COMPONENT_PACKET, ItemComponentPacket.class);
+        this.registerPacket(ProtocolInfo.ADD_VOLUME_ENTITY, AddVolumeEntityPacket.class);
+        this.registerPacket(ProtocolInfo.REMOVE_VOLUME_ENTITY, RemoveVolumeEntityPacket.class);
+        this.registerPacket(ProtocolInfo.SYNC_ENTITY_PROPERTY, SyncEntityPropertyPacket.class);
     }
 }

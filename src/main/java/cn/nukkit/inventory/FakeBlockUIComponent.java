@@ -22,7 +22,12 @@ public class FakeBlockUIComponent extends PlayerUIComponent {
     public FakeBlockMenu getHolder() {
         return (FakeBlockMenu) this.holder;
     }
-
+    
+    @Override
+    public InventoryType getType() {
+        return type;
+    }
+    
     @Override
     public boolean open(Player who) {
         InventoryOpenEvent ev = new InventoryOpenEvent(this, who);
@@ -67,7 +72,15 @@ public class FakeBlockUIComponent extends PlayerUIComponent {
     public void onClose(Player who) {
         ContainerClosePacket pk = new ContainerClosePacket();
         pk.windowId = who.getWindowId(this);
+        pk.wasServerInitiated = who.getClosingWindowId() != pk.windowId;
         who.dataPacket(pk);
         super.onClose(who);
+    }
+
+    @Override
+    public void sendContents(Player... players) {
+        for (int slot = 0; slot < getSize(); slot++) {
+            sendSlot(slot, players);
+        }
     }
 }

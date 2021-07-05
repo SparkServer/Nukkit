@@ -9,8 +9,8 @@ import cn.nukkit.lang.TranslationContainer;
 import cn.nukkit.utils.TextFormat;
 
 /**
- * Created by Snake1999 on 2016/1/22.
- * Package cn.nukkit.command.defaults in project nukkit.
+ * @author Snake1999
+ * @since 2016/1/22
  */
 public class XpCommand extends Command {
     public XpCommand(String name) {
@@ -18,8 +18,12 @@ public class XpCommand extends Command {
         this.setPermission("nukkit.command.xp");
         this.commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[]{
-                new CommandParameter("amount|level", CommandParamType.INT, false),
-                new CommandParameter("player", CommandParamType.TARGET, true)
+                CommandParameter.newType("amount", CommandParamType.INT),
+                CommandParameter.newType("player", true, CommandParamType.TARGET)
+        });
+        this.commandParameters.put("level", new CommandParameter[]{
+                CommandParameter.newPostfix("amount", "l"),
+                CommandParameter.newType("player", true, CommandParamType.TARGET)
         });
     }
 
@@ -82,7 +86,7 @@ public class XpCommand extends Command {
             if (newLevel < 0) {
                 player.setExperience(0, 0);
             } else {
-                player.setExperience(player.getExperience(), newLevel);
+                player.setExperience(player.getExperience(), newLevel, true);
             }
             if (amount > 0) {
                 sender.sendMessage(new TranslationContainer("commands.xp.success.levels", String.valueOf(amount), player.getName()));

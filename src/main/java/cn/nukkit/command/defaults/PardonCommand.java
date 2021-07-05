@@ -7,8 +7,7 @@ import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.lang.TranslationContainer;
 
 /**
- * author: MagicDroidX
- * Nukkit Project
+ * @author MagicDroidX (Nukkit Project)
  */
 public class PardonCommand extends VanillaCommand {
 
@@ -18,7 +17,7 @@ public class PardonCommand extends VanillaCommand {
         this.setAliases(new String[]{"unban"});
         this.commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[]{
-                new CommandParameter("player", CommandParamType.TARGET, false)
+                CommandParameter.newType("player", CommandParamType.TARGET)
         });
     }
 

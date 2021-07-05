@@ -10,8 +10,8 @@ import cn.nukkit.utils.TextFormat;
 import java.util.Objects;
 
 /**
- * Created on 2015/11/12 by xtypr.
- * Package cn.nukkit.command.defaults in project Nukkit .
+ * @author xtypr
+ * @since 2015/11/12
  */
 public class TellCommand extends VanillaCommand {
 
@@ -20,8 +20,8 @@ public class TellCommand extends VanillaCommand {
         this.setPermission("nukkit.command.tell");
         this.commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[]{
-                new CommandParameter("player", CommandParamType.TARGET, false),
-                new CommandParameter("message")
+                CommandParameter.newType("player", CommandParamType.TARGET),
+                CommandParameter.newType("message", CommandParamType.MESSAGE)
         });
     }
 

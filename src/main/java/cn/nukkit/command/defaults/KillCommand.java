@@ -16,8 +16,8 @@ import cn.nukkit.utils.TextFormat;
 import java.util.StringJoiner;
 
 /**
- * Created on 2015/12/08 by Pub4Game.
- * Package cn.nukkit.command.defaults in project Nukkit .
+ * @author Pub4Game
+ * @since 2015/12/08
  */
 public class KillCommand extends VanillaCommand {
 
@@ -27,7 +27,7 @@ public class KillCommand extends VanillaCommand {
                 + "nukkit.command.kill.other");
         this.commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[]{
-                new CommandParameter("player", CommandParamType.TARGET, true)
+                CommandParameter.newType("player", true, CommandParamType.TARGET)
         });
     }
 

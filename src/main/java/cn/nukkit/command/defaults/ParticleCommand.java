@@ -3,6 +3,7 @@ package cn.nukkit.command.defaults;
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.command.CommandSender;
+import cn.nukkit.command.data.CommandEnum;
 import cn.nukkit.command.data.CommandParamType;
 import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.item.Item;
@@ -12,10 +13,11 @@ import cn.nukkit.level.particle.*;
 import cn.nukkit.math.Vector3;
 
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Created on 2015/11/12 by xtypr.
- * Package cn.nukkit.command.defaults in project Nukkit .
+ * @author xtypr
+ * @since 2015/11/12
  */
 public class ParticleCommand extends VanillaCommand {
     private static final String[] ENUM_VALUES = new String[]{"explode", "hugeexplosion", "hugeexplosionseed", "bubble"
@@ -27,10 +29,10 @@ public class ParticleCommand extends VanillaCommand {
         this.setPermission("nukkit.command.particle");
         this.commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[]{
-                new CommandParameter("name", false, ENUM_VALUES),
-                new CommandParameter("position", CommandParamType.POSITION, false),
-                new CommandParameter("count", CommandParamType.INT, true),
-                new CommandParameter("data", true)
+                CommandParameter.newEnum("effect", new CommandEnum("Particle", ENUM_VALUES)),
+                CommandParameter.newType("position", CommandParamType.POSITION),
+                CommandParameter.newType("count", true, CommandParamType.INT),
+                CommandParameter.newType("data", true, CommandParamType.INT)
         });
     }
 
@@ -60,9 +62,9 @@ public class ParticleCommand extends VanillaCommand {
         double z;
 
         try {
-            x = getDouble(args[1], defaultPosition.getX());
-            y = getDouble(args[2], defaultPosition.getY());
-            z = getDouble(args[3], defaultPosition.getZ());
+            x = parseTilde(args[1], defaultPosition.getX());
+            y = parseTilde(args[2], defaultPosition.getY());
+            z = parseTilde(args[3], defaultPosition.getZ());
         } catch (Exception e) {
             return false;
         }
@@ -98,7 +100,7 @@ public class ParticleCommand extends VanillaCommand {
 
         sender.sendMessage(new TranslationContainer("commands.particle.success", name, String.valueOf(count)));
 
-        Random random = new Random(System.currentTimeMillis());
+        Random random = ThreadLocalRandom.current();
 
         for (int i = 0; i < count; i++) {
             particle.setComponents(
@@ -199,15 +201,5 @@ public class ParticleCommand extends VanillaCommand {
 
         return null;
     }
-
-    private static double getDouble(String arg, double defaultValue) throws Exception {
-        if (arg.startsWith("~")) {
-            String relativePos = arg.substring(1);
-            if (relativePos.isEmpty()) {
-                return defaultValue;
-            }
-            return defaultValue + Double.parseDouble(relativePos);
-        }
-        return Double.parseDouble(arg);
-    }
+    
 }
